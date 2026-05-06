@@ -69,6 +69,46 @@ docker compose \
   down -v
 ```
 
+## Relatórios
+
+A suíte gera dois conjuntos de relatórios em cada execução: o padrão do Robot Framework (rápido, local) e o **Allure** (rico, com histórico, anexos, drill-down). Em CI o Allure é publicado em **GitHub Pages** com histórico das últimas 20 execuções.
+
+### Robot Framework (padrão)
+
+Após `robot ... tests/suites/`, abra `results/report.html` no navegador. Esse é o relatório nativo, gerado sempre.
+
+### Allure (relatório rico, local)
+
+Pré-requisito: **Allure CLI** instalado (Java 8+). No Windows: `scoop install allure` ou via Chocolatey/npm. No macOS: `brew install allure`. No Linux: baixar do [GitHub Releases](https://github.com/allure-framework/allure2/releases).
+
+```bash
+# Executar com listener Allure
+robot --listener allure_robotframework:allure-results \
+      --outputdir results \
+      tests/suites/
+
+# Visualizar (sobe um servidor local e abre o browser)
+allure serve allure-results
+
+# Ou gerar HTML estático
+allure generate allure-results -o allure-report --clean
+allure open allure-report
+```
+
+### CI / Histórico online
+
+Cada push em `main` dispara o workflow `.github/workflows/e2e-tests.yml`, que:
+
+- Executa as 4 suítes contra todo o ambiente Docker (3 APIs + WireMock + infra)
+- Publica o relatório Allure em **GitHub Pages** com histórico das 20 últimas execuções
+- Faz upload de `allure-report` e `robot-results` como **artefatos** do GitHub Actions (retenção 30 dias)
+
+URL do relatório online (após habilitar GitHub Pages com source `gh-pages`):
+
+> **https://fiap-challenge-13soat.github.io/mecanica-hermes-tests-e2e/**
+
+Para baixar relatórios de uma execução específica (ex.: PR), abra a Action correspondente no GitHub → seção **Artifacts**.
+
 ## Estrutura
 
 ```

@@ -1,4 +1,7 @@
 results/
+allure-results/
+allure-report/
+allure-history/
 output.xml
 log.html
 report.html
