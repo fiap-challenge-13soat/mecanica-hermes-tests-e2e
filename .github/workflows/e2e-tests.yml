@@ -37,6 +37,11 @@ jobs:
       - name: Start environment (Docker Compose)
         env:
           MEDIATR_LICENSE_KEY: ${{ secrets.MEDIATR_LICENSE_KEY }}
+          # Tags das imagens — pin sha-<short> em mãos via secrets para builds determinísticos.
+          # Sem secrets configurados, cai para "latest" (ok para validar workflow, não para gates).
+          OS_IMAGE_TAG: ${{ vars.OS_IMAGE_TAG || 'latest' }}
+          CADASTROS_IMAGE_TAG: ${{ vars.CADASTROS_IMAGE_TAG || 'latest' }}
+          PAGAMENTOS_IMAGE_TAG: ${{ vars.PAGAMENTOS_IMAGE_TAG || 'latest' }}
         run: |
           docker compose \
             -f docker-compose/docker-compose.yaml \

@@ -43,7 +43,7 @@ services:
       - e2e-net
 
   api-os:
-    image: mechermes/mecanica-hermes-api-ordem-servico:latest
+    image: mechermes/mecanica-hermes-api-ordem-servico:${OS_IMAGE_TAG:-latest}
     container_name: api-os
     ports:
       - "8081:8080"
@@ -77,7 +77,7 @@ services:
       - e2e-net
 
   api-cadastros:
-    image: mechermes/mecanica-hermes-cadastros:latest
+    image: mechermes/mecanica-hermes-cadastros:${CADASTROS_IMAGE_TAG:-latest}
     container_name: api-cadastros
     ports:
       - "8082:8080"
@@ -113,7 +113,7 @@ services:
       - e2e-net
 
   api-pagamentos:
-    image: mechermes/mecanica-hermes-api-pagamentos:latest
+    image: mechermes/mecanica-hermes-api-pagamentos:${PAGAMENTOS_IMAGE_TAG:-latest}
     container_name: api-pagamentos
     ports:
       - "8083:8080"
