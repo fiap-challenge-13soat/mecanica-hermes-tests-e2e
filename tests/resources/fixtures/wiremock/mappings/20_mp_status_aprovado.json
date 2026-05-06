@@ -1,0 +1,23 @@
+{
+  "name": "MP - Consultar Status Pagamento (aprovado - padrão)",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/v1/payments/search.*"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "paging": { "total": 1, "limit": 30, "offset": 0 },
+      "results": [
+        {
+          "id": 99001,
+          "status": "approved",
+          "status_detail": "accredited",
+          "external_reference": "{{request.query.external_reference}}"
+        }
+      ]
+    },
+    "transformers": ["response-template"]
+  }
+}

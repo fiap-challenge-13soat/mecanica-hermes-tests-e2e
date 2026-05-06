@@ -1,0 +1,11 @@
+results/
+output.xml
+log.html
+report.html
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+docker-compose/services/mongodb/mongo_data/
+docker-compose/services/postgres/postgres_data/
+docker-compose/services/rabbitmq/rabbitmq_data/

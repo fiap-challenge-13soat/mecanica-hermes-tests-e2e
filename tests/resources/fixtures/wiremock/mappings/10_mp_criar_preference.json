@@ -1,0 +1,16 @@
+{
+  "name": "MP - Criar Preference (sucesso)",
+  "request": {
+    "method": "POST",
+    "url": "/checkout/preferences"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "PREF-WIREMOCK-E2E-001",
+      "init_point": "http://localhost:8090/pay/fake-link",
+      "sandbox_init_point": "http://localhost:8090/pay/fake-link"
+    }
+  }
+}
