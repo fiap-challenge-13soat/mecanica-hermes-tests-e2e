@@ -6,12 +6,13 @@ Documentation     Cancelamento da OS quando ela está em AguardandoPagamento (co
 ...               Validações:
 ...
 ...               - OS transiciona para Cancelada (terminal).
-...               - O fluxo cross-service não trava: o pagamento existente continua polling MP
-...                 e eventualmente é finalizado (no nosso E2E, expira porque o WireMock está em
-...                 pending). Embora hoje a API de Pagamentos NÃO consuma o evento
-...                 `ordem-de-servico.cancelada.v1` para cancelar o pagamento explicitamente
-...                 (gap conhecido — TODO para o time), o sistema converge para um estado
-...                 consistente porque o pagamento expira por timeout.
+...               - Cross-service: a API de Pagamentos consome `ordem-de-servico.cancelada.v1`
+...                 e recusa o pagamento ativo imediatamente — não esperamos o timeout do polling
+...                 MP. Validamos consultando o pagamento via `GET /api/pagamentos?ordemDeServicoId=...`
+...                 (ou equivalente, ver helper). Antes desta cobertura, o pagamento ficava órfão
+...                 polling até expirar (~30s).
+
+Library     Process
 
 Resource    ../resources/keywords/common.resource
 Resource    ../resources/keywords/os_api.resource
@@ -30,15 +31,19 @@ ${SERVICO_ID}    ${EMPTY}
 
 
 *** Test Cases ***
-Cancelamento Em AguardandoPagamento - OS Vai Para Cancelada
+Cancelamento Em AguardandoPagamento - OS Vai Para Cancelada E Pagamento É Recusado
     [Documentation]    O operador cancela uma OS em AguardandoPagamento (link de MP já gerado,
-    ...                pagamento em ciclo de polling). Espera-se que a OS transicione para
-    ...                Cancelada (terminal) e que cancelamentos subsequentes sejam rejeitados.
-    [Tags]    cancelamento    pagamento-pendente    e2e
+    ...                pagamento em ciclo de polling). Espera-se que (a) a OS transicione para
+    ...                Cancelada (terminal); (b) o `OrdemDeServicoCanceladaConsumer` da Pagamentos
+    ...                consuma o evento `ordem-de-servico.cancelada.v1` e recuse o pagamento
+    ...                ativo, evitando que o polling MP siga consumindo recursos; (c) o estado
+    ...                Cancelada da OS rejeite avanços subsequentes.
+    [Tags]    cancelamento    pagamento-pendente    cross-service    e2e
 
     Given uma OS está em AguardandoPagamento com pagamento pendente
     When o operador cancela a OS
     Then a OS vai para o estado terminal Cancelada
+    And o pagamento associado é recusado pela Pagamentos via evento de cancelamento
     And o estado Cancelada não aceita mais operações de estado
 
 
@@ -81,5 +86,18 @@ o operador cancela a OS
 a OS vai para o estado terminal Cancelada
     Esperar OS Atingir Status    ${OS_ID}    Cancelada
 
+o pagamento associado é recusado pela Pagamentos via evento de cancelamento
+    [Documentation]    Aguarda o `OrdemDeServicoCanceladaConsumer` da Pagamentos processar o
+    ...                evento e marcar o pagamento como Recusado. A janela é folgada (30s) para
+    ...                tolerar latência de outbox + bus + dispatch + persist.
+    Wait Until Keyword Succeeds    30s    2s    Pagamento Da OS Deve Estar Recusado    ${OS_ID}
+
 o estado Cancelada não aceita mais operações de estado
     OS Deve Ser Terminal    ${OS_ID}
+
+Pagamento Da OS Deve Estar Recusado
+    [Arguments]    ${os_id}
+    ${result}=    Run Process    docker    exec    mongo    mongosh    mechermes_pagamento_e2e
+    ...    --quiet    --eval    db.pagamentos.findOne({"ordemDeServicoId": UUID("${os_id}")}, {"statusAtual": 1, "_id": 0})
+    Should Contain    ${result.stdout}    Recusado
+    ...    msg=Pagamento da OS ${os_id} deveria estar Recusado pelo consumer cross-service. Saída do mongo: ${result.stdout}
