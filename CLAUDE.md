@@ -11,16 +11,16 @@ This repository is **one of five** in the Mecânica Hermes ecosystem. They live 
 |---|---|---|
 | `mecanica-hermes-tests-e2e` | **This repo** — suíte E2E Robot Framework BDD cobrindo as 3 APIs em Docker Compose | Python 3.11, Robot Framework 7.2, Allure |
 | `mecanica-hermes-api-ordem-servico` | Orquestra ordens de serviço (state machine, SAGA principal) | .NET 10, PostgreSQL, RabbitMQ |
-| `mecanica-hermes-cadastros` | Cadastros de Clientes e Produtos; recebe webhook de aprovação/rejeição | .NET 10, PostgreSQL |
+| `mecanica-hermes-api-cadastros` | Cadastros de Clientes e Produtos; recebe webhook de aprovação/rejeição | .NET 10, PostgreSQL |
 | `mecanica-hermes-api-pagamentos` | Integração Mercado Pago, gera link, recebe webhook MP | .NET 10, MongoDB |
-| `mecanica-hermes-shared-sdk` | SDK compartilhado em GitHub Packages (6 pacotes NuGet) | .NET 10 |
+| `mecanica-hermes-api-sdk` | SDK compartilhado em GitHub Packages (6 pacotes NuGet) | .NET 10 |
 
 ### Diferença frente aos outros 4 repos
 
 - **Não é .NET**: este é um projeto Python. Não tente buildar com `dotnet`.
 - **Consumidor das 3 APIs**: depende de imagens Docker `mechermes/*` no Docker Hub. Tags
   parametrizadas via `OS_IMAGE_TAG`, `CADASTROS_IMAGE_TAG`, `PAGAMENTOS_IMAGE_TAG` (default `latest`).
-- **Não tem PR de SDK pendente**: o `shared-sdk` é só para os 3 repos .NET de API. Aqui não muda.
+- **Não tem PR de SDK pendente**: o `api-sdk` é só para os 3 repos .NET de API. Aqui não muda.
 - **Mocking de Mercado Pago**: feito via WireMock.Net no compose E2E (porta 8090). Mappings em
   `docker-compose/services/wiremock/mappings/`. A suíte nunca toca o sandbox real do MP.
 
