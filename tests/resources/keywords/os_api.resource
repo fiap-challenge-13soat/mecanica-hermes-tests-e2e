@@ -44,7 +44,7 @@ Adicionar Produto A OS
     [Arguments]    ${os_id}    ${produto_id}    ${valor}=150.00    ${quantidade}=1
     ${body}=    Create Dictionary
     ...    produtoId=${produto_id}
-    ...    valorVenda=${valor}
+    ...    valorUnitario=${valor}
     ...    quantidade=${quantidade}
     POST    ${OS_URL}/${os_id}/produtos    json=${body}    expected_status=202
     Wait Until Keyword Succeeds    30s    1s    Produto Deve Estar Em OS    ${os_id}    ${produto_id}
@@ -62,7 +62,7 @@ Adicionar Servico A OS
     [Arguments]    ${os_id}    ${servico_id}    ${valor}=200.00
     ${body}=    Create Dictionary
     ...    servicoId=${servico_id}
-    ...    valorVenda=${valor}
+    ...    valor=${valor}
     POST    ${OS_URL}/${os_id}/servicos    json=${body}    expected_status=202
     Wait Until Keyword Succeeds    30s    1s    Servico Deve Estar Em OS    ${os_id}    ${servico_id}
 

@@ -45,7 +45,10 @@ Adicionar Veiculo
 
 Criar Produto
     [Documentation]    Cria um produto no catálogo. Retorna o produtoId.
+    ...                Sufixo timestamp+random na descrição para evitar 409 entre runs.
     [Arguments]    ${descricao}=Filtro de Óleo E2E    ${valor}=85.00    ${quantidade}=100
+    ${suffix}=    Evaluate    f"{int(__import__('time').time())}{__import__('random').randint(100,999)}"
+    ${descricao}=    Set Variable    ${descricao} ${suffix}
     ${body}=    Create Dictionary
     ...    descricao=${descricao}
     ...    valor=${valor}
@@ -53,18 +56,21 @@ Criar Produto
     ...    tipo=Peca
     ${response}=    POST    ${CADASTROS_URL}/produtos    json=${body}    expected_status=201
     ${id}=    Get From Dictionary    ${response.json()}    id
-    Log    Produto criado: ${id}
+    Log    Produto criado: ${id} (descricao=${descricao})
     RETURN    ${id}
 
 Criar Servico
     [Documentation]    Cria um serviço no catálogo. Retorna o servicoId.
+    ...                Sufixo timestamp+random na descrição para evitar 409 entre runs.
     [Arguments]    ${descricao}=Troca de Óleo E2E    ${valor}=120.00
+    ${suffix}=    Evaluate    f"{int(__import__('time').time())}{__import__('random').randint(100,999)}"
+    ${descricao}=    Set Variable    ${descricao} ${suffix}
     ${body}=    Create Dictionary
     ...    descricao=${descricao}
     ...    valor=${valor}
     ${response}=    POST    ${CADASTROS_URL}/servicos    json=${body}    expected_status=201
     ${id}=    Get From Dictionary    ${response.json()}    id
-    Log    Serviço criado: ${id}
+    Log    Serviço criado: ${id} (descricao=${descricao})
     RETURN    ${id}
 
 Simular Aprovacao Webhook

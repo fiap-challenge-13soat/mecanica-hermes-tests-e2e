@@ -31,10 +31,14 @@ pip install -r requirements.txt
 docker compose \
   -f docker-compose/docker-compose.yaml \
   -f docker-compose/docker-compose.e2e.yaml \
-  up -d --wait
+  up -d --wait --build --pull always
 ```
 
 > `--wait` aguarda todos os healthchecks passarem antes de retornar.
+> `--build` força a build da imagem custom do RabbitMQ (com plugin `rabbitmq_delayed_message_exchange`
+> embutido — necessário para a SAGA da OS).
+> `--pull always` garante que as `:latest` das 3 APIs (`mechermes/*`) sejam re-puxadas do Docker Hub
+> a cada subida, evitando rodar contra cache stale.
 
 ### 3. Verificar que tudo subiu
 
