@@ -71,15 +71,48 @@ jobs:
           ref: gh-pages
           path: gh-pages
 
+      # Geração do Allure feita manualmente via CLI: a action `simple-elf/allure-report-action`
+      # ficou quebrada porque a imagem base `openjdk:8-jre-alpine` foi removida do Docker Hub.
+      # Mantemos o trend de runs anteriores copiando `gh-pages/history` para `allure-results/history`
+      # antes do `allure generate` (Allure detecta a pasta e acumula tendências).
+      - name: Setup Java (Allure CLI)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Allure CLI
+        if: always()
+        env:
+          ALLURE_VERSION: "2.30.0"
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/allure.tgz \
+            "https://github.com/allure-framework/allure2/releases/download/${ALLURE_VERSION}/allure-${ALLURE_VERSION}.tgz"
+          sudo tar -xzf /tmp/allure.tgz -C /opt/
+          sudo ln -sf "/opt/allure-${ALLURE_VERSION}/bin/allure" /usr/local/bin/allure
+          allure --version
+
+      - name: Restore Allure history (preserva trend cross-runs)
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p allure-results
+          if [ -d gh-pages/history ]; then
+            mkdir -p allure-results/history
+            cp -r gh-pages/history/. allure-results/history/
+            echo "History restaurado de gh-pages/history."
+          else
+            echo "Sem history prévio em gh-pages — trend vai começar do zero."
+          fi
+
       - name: Generate Allure report
         if: always()
-        uses: simple-elf/allure-report-action@v1.9
-        with:
-          allure_results: allure-results
-          gh_pages: gh-pages
-          allure_report: allure-report
-          allure_history: allure-history
-          keep_reports: 20
+        run: |
+          set -euo pipefail
+          allure generate allure-results --clean -o allure-history
+          ls -la allure-history/ | head -20
 
       - name: Upload Allure report (artifact)
         if: always()
