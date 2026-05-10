@@ -25,6 +25,15 @@ Configurar MP Status Aprovado
     POST    ${WIREMOCK_ADMIN_URL}/scenarios/reset    expected_status=200
     Log    WireMock cenários resetados para Started (aprovado é o padrão)
 
+Configurar MP Status Pending
+    [Documentation]    Ativa o cenário WireMock que retorna pagamento pending (perpétuo até reset).
+    ...                Usado para validar o pathway de expiração: Pagamentos polla MP, recebe pending,
+    ...                exaure tentativas, expira o pagamento e publica recusa para a OS reverter.
+    ${body}=    Create Dictionary    state=pagamento_pending
+    PUT    ${WIREMOCK_ADMIN_URL}/scenarios/pagamento-pending/state
+    ...    json=${body}    expected_status=200
+    Log    WireMock configurado para retornar pagamento pending (perpétuo)
+
 Verificar WireMock Disponivel
     ${response}=    GET    ${WIREMOCK_ADMIN_URL}/health    expected_status=200
     Log    WireMock disponível: ${response.json()}

@@ -61,6 +61,10 @@ services:
       MONGODB__CONNECTION_STRING: mongodb://mongo:27017
       MONGODB__SAGA_DATABASE: mechermes_saga_e2e
       OUTBOX__POLL_INTERVAL: "00:00:02"
+      # SAGA timeout sentinel: 30s em E2E (default em prod = 5min). Permite que a suite 07
+      # valide o pathway de timeout sem aguardar 5min reais. Operações da SAGA na suíte
+      # completam consistentemente em < 5s, então 30s é folgado para o caminho feliz.
+      SAGA__OPERATION_TIMEOUT: "00:00:30"
     depends_on:
       postgres:
         condition: service_healthy

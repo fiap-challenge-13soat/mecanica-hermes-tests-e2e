@@ -1,0 +1,25 @@
+{
+  "name": "MP - Consultar Status Pagamento (pending - cenário pagamento_pending)",
+  "scenarioName": "pagamento-pending",
+  "requiredScenarioState": "pagamento_pending",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/v1/payments/search.*"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "paging": { "total": 1, "limit": 30, "offset": 0 },
+      "results": [
+        {
+          "id": 99003,
+          "status": "pending",
+          "status_detail": "pending_waiting_payment",
+          "external_reference": "{{request.query.external_reference}}"
+        }
+      ]
+    },
+    "transformers": ["response-template"]
+  }
+}

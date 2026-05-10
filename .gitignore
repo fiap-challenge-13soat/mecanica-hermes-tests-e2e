@@ -12,3 +12,4 @@ __pycache__/
 docker-compose/services/mongodb/mongo_data/
 docker-compose/services/postgres/postgres_data/
 docker-compose/services/rabbitmq/rabbitmq_data/
+.claude/
