@@ -58,7 +58,25 @@ O `CLAUDE.md` deste repositório lista os irmãos como:
 Causa retrabalho a cada sessão (descobri isso só rodando `ls`). Atualizar a tabela
 "Ecosystem Context" para refletir os diretórios reais.
 
-### 4. Branch `feature/docker-compose-e2e` carregou mais de uma intenção
+### 4a. Inconsistência de nome das imagens Docker entre os 3 repos
+
+Identificada durante o Copilot Review do PR #1 do E2E:
+
+| Repo | `IMAGE_NAME` no docker-ci.yml |
+|---|---|
+| `mecanica-hermes-api-ordem-servico` | `mechermes/mecanica-hermes-api-ordem-servico` |
+| `mecanica-hermes-api-cadastros` | `mechermes/mecanica-hermes-cadastros` (sem `api-`) |
+| `mecanica-hermes-api-pagamentos` | `mechermes/mecanica-hermes-api-pagamento` (singular) |
+
+3 padrões diferentes. Não causa bug — o compose deste repo aponta para os
+nomes reais de cada registry — mas dificulta convenção. Para padronizar:
+
+1. Definir convenção (ex.: `mechermes/mecanica-hermes-api-<dominio-singular>`).
+2. Atualizar `IMAGE_NAME` em cada `docker-ci.yml`.
+3. Re-publicar; manter alias da imagem antiga por X tempo se houver consumidores externos.
+4. Atualizar `docker-compose.e2e.yaml` neste repo.
+
+### 4b. Branch `feature/docker-compose-e2e` carregou mais de uma intenção
 
 Nas 3 APIs, essa branch acumulou: bug fixes E2E + saga timeout config (OS) + SDK bump
 + event publisher (OS) / consumer (Pagamentos). 4 concerns numa branch só. Em revisão
