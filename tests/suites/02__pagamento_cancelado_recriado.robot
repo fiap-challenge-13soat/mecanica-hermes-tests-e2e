@@ -45,7 +45,7 @@ Pagamento Recusado - Segundo Pagamento Aprovado - Entrega
 *** Keywords ***
 Preparar Suite Pagamento Cancelado
     Verificar WireMock Disponivel
-    ${cid}=    Criar Cliente    nome=Carlos Teste Recusado    email=carlos.recusado@e2e.test    cpf=11144477735
+    ${cid}=    Criar Cliente    nome=Carlos Teste Recusado    email=carlos.recusado@e2e.test
     ${vid}=    Adicionar Veiculo    ${cid}    placa=DEF2G34
     ${pid}=    Criar Produto    descricao=Filtro E2E Recusado    valor=75.00
     ${sid}=    Criar Servico    descricao=Revisão E2E Recusado    valor=150.00

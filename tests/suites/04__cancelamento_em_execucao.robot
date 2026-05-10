@@ -31,7 +31,7 @@ Cancelamento Durante Execucao
 *** Keywords ***
 Preparar Suite Cancelamento
     Verificar WireMock Disponivel
-    ${cid}=    Criar Cliente    nome=Pedro Teste Cancel    email=pedro.cancel@e2e.test    cpf=35453285878
+    ${cid}=    Criar Cliente    nome=Pedro Teste Cancel    email=pedro.cancel@e2e.test
     ${vid}=    Adicionar Veiculo    ${cid}    placa=JKL4M56
     Set Suite Variable    ${CLIENTE_ID}    ${cid}
     Set Suite Variable    ${VEICULO_ID}    ${vid}

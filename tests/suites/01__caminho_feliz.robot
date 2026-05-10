@@ -47,7 +47,7 @@ Ciclo Completo - Recebida Ate Entregue
 *** Keywords ***
 Preparar Suite Caminho Feliz
     Verificar WireMock Disponivel
-    ${cid}=    Criar Cliente    nome=Maria Teste Feliz    email=maria.feliz@e2e.test    cpf=52998224725
+    ${cid}=    Criar Cliente    nome=Maria Teste Feliz    email=maria.feliz@e2e.test
     ${vid}=    Adicionar Veiculo    ${cid}
     ${pid}=    Criar Produto    descricao=Filtro E2E Feliz    valor=90.00
     ${sid}=    Criar Servico    descricao=Revisão E2E Feliz    valor=180.00

@@ -1,6 +1,9 @@
 services:
   rabbitmq:
-    image: rabbitmq:4.3.0-management
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mechermes/rabbitmq-delayed:4.1-management
     container_name: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}

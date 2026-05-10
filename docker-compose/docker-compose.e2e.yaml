@@ -57,6 +57,7 @@ services:
       MASSTRANSIT__TRANSPORT_SERVICE: RabbitMq
       MASSTRANSIT__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
       MASSTRANSIT__QUEUE_NAME_PREFIX: mecanica-hermes-e2e
+      MASSTRANSIT__PREFETCH_COUNT: "1"
       MONGODB__CONNECTION_STRING: mongodb://mongo:27017
       MONGODB__SAGA_DATABASE: mechermes_saga_e2e
       OUTBOX__POLL_INTERVAL: "00:00:02"
@@ -68,7 +69,7 @@ services:
       mongo:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -104,7 +105,7 @@ services:
       rabbitmq:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -113,7 +114,7 @@ services:
       - e2e-net
 
   api-pagamentos:
-    image: mechermes/mecanica-hermes-api-pagamentos:${PAGAMENTOS_IMAGE_TAG:-latest}
+    image: mechermes/mecanica-hermes-api-pagamento:${PAGAMENTOS_IMAGE_TAG:-latest}
     container_name: api-pagamentos
     ports:
       - "8083:8080"
@@ -145,7 +146,7 @@ services:
       api-cadastros:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 10s
       timeout: 5s
       retries: 15

@@ -31,7 +31,7 @@ Cliente Rejeita Orcamento - OS Vai Para Rejeitada
 *** Keywords ***
 Preparar Suite Orcamento Rejeitado
     Verificar WireMock Disponivel
-    ${cid}=    Criar Cliente    nome=Ana Teste Rejeição    email=ana.rejeicao@e2e.test    cpf=66978946220
+    ${cid}=    Criar Cliente    nome=Ana Teste Rejeição    email=ana.rejeicao@e2e.test
     ${vid}=    Adicionar Veiculo    ${cid}    placa=GHI3J45
     Set Suite Variable    ${CLIENTE_ID}    ${cid}
     Set Suite Variable    ${VEICULO_ID}    ${vid}

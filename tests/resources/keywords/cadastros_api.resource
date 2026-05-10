@@ -8,7 +8,17 @@ Variables   ../variables/env.yaml
 *** Keywords ***
 Criar Cliente
     [Documentation]    Cria um cliente no Cadastros. Retorna o clienteId.
-    [Arguments]    ${nome}=João Silva    ${email}=joao.e2e@mecanica.test    ${cpf}=52998224725
+    ...                Quando ${cpf} é vazio, gera um CPF válido aleatório.
+    ...                O ${email} é desambiguado com timestamp+random pra evitar colisão entre runs
+    ...                (Cadastros enforce email unique).
+    [Arguments]    ${nome}=João Silva    ${email}=joao.e2e@mecanica.test    ${cpf}=${EMPTY}
+    IF    '${cpf}' == '${EMPTY}'
+        ${cpf}=    Gerar CPF Valido
+    END
+    ${suffix}=     Evaluate    f"{int(__import__('time').time())}{__import__('random').randint(100,999)}"
+    ${user}=       Evaluate    "${email}".split("@")[0]
+    ${domain}=     Evaluate    "${email}".split("@")[1]
+    ${email}=      Set Variable    ${user}+${suffix}@${domain}
     ${body}=    Create Dictionary
     ...    nomeCivil=${nome}
     ...    email=${email}
@@ -16,7 +26,7 @@ Criar Cliente
     ...    telefone=11987654321
     ${response}=    POST    ${CADASTROS_URL}/clientes    json=${body}    expected_status=201
     ${id}=    Get From Dictionary    ${response.json()}    id
-    Log    Cliente criado: ${id}
+    Log    Cliente criado: ${id} (CPF=${cpf}, email=${email})
     RETURN    ${id}
 
 Adicionar Veiculo
