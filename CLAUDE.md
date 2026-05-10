@@ -21,8 +21,10 @@ This repository is **one of five** in the Mecânica Hermes ecosystem. They live 
 - **Consumidor das 3 APIs**: depende de imagens Docker `mechermes/*` no Docker Hub. Tags
   parametrizadas via `OS_IMAGE_TAG`, `CADASTROS_IMAGE_TAG`, `PAGAMENTOS_IMAGE_TAG` (default `latest`).
 - **Não tem PR de SDK pendente**: o `api-sdk` é só para os 3 repos .NET de API. Aqui não muda.
-- **Mocking de Mercado Pago**: feito via WireMock.Net no compose E2E (porta 8090). Mappings em
-  `docker-compose/services/wiremock/mappings/`. A suíte nunca toca o sandbox real do MP.
+- **Mocking de Mercado Pago**: feito via imagem oficial `wiremock/wiremock` no compose E2E
+  (porta host 8090, container 8080). Mappings versionados em
+  `tests/resources/fixtures/wiremock/mappings/` (montados como bind mount). A suíte nunca
+  toca o sandbox real do MP.
 
 ## Commands
 
@@ -69,11 +71,15 @@ docker compose \
 
 ```text
 tests/
-├── suites/                    # 4 arquivos .robot (BDD Gherkin)
+├── suites/                    # 8 arquivos .robot (BDD Gherkin)
 │   ├── 01__caminho_feliz.robot
 │   ├── 02__pagamento_cancelado_recriado.robot
 │   ├── 03__orcamento_rejeitado.robot
-│   └── 04__cancelamento_em_execucao.robot
+│   ├── 04__cancelamento_em_execucao.robot
+│   ├── 05__pagamento_expirado.robot
+│   ├── 06__webhook_idempotencia.robot
+│   ├── 07__saga_timeout_protection.robot
+│   └── 08__cancelamento_em_aguardando_pagamento.robot
 ├── resources/
 │   ├── variables/env.yaml     # variáveis comuns (URLs, timeouts)
 │   ├── keywords/              # 1 .resource por API + common + wiremock
@@ -82,12 +88,15 @@ tests/
 │   │   ├── cadastros_api.resource
 │   │   ├── pagamentos_api.resource
 │   │   └── wiremock.resource
-│   └── fixtures/wiremock/     # JSON mappings adicionais (se necessário)
+│   └── fixtures/
+│       └── wiremock/mappings/ # mappings WireMock (Mercado Pago mock — bind mount no compose)
 docker-compose/
-├── docker-compose.yaml        # infra base (Postgres, MongoDB, RabbitMQ, OTLP)
+├── docker-compose.yaml        # infra base (Postgres, MongoDB, RabbitMQ)
 ├── docker-compose.e2e.yaml    # overrides E2E (WireMock + 3 APIs com tags)
 └── services/
-    └── wiremock/mappings/     # mappings padrão de Mercado Pago
+    ├── postgres/              # postgres.yaml (extends) + initdb scripts
+    ├── mongodb/               # mongo.yaml (extends) — replica set single-node
+    └── rabbitmq/              # rabbitmq.yaml + Dockerfile (com plugin delayed-message-exchange)
 ```
 
 ### Suítes (cobertura)
@@ -121,10 +130,13 @@ sempre em português** — alinhada ao domínio.
 
 Workflow `.github/workflows/e2e-tests.yml`:
 
-- Trigger: `workflow_dispatch` (manual) e push em `main`/`feature/**`.
+- Trigger: `workflow_dispatch` (manual), push em `main`/`feature/**`, e `pull_request` em `main`.
 - Lê tags das imagens das APIs de `vars.OS_IMAGE_TAG`, `vars.CADASTROS_IMAGE_TAG`,
   `vars.PAGAMENTOS_IMAGE_TAG` (org-level), com fallback `latest`.
-- Sobe Docker Compose, roda `robot --include smoke`, publica Allure em GitHub Pages.
+- Sobe Docker Compose, roda **todas as 8 suítes** (`robot tests/suites/`), gera report Allure
+  via CLI direta (Java 21 + allure 2.30.0), e publica em GitHub Pages **apenas em push para `main`**.
+- Robot roda com `continue-on-error: true` para garantir geração do Allure mesmo em falha;
+  o job é marcado como failure ao final via step explícito que lê `steps.robot.outcome`.
 
 GitHub Pages precisa estar **ativado manualmente** (Settings → Pages → Source: GitHub Actions)
 para o passo de publish funcionar.

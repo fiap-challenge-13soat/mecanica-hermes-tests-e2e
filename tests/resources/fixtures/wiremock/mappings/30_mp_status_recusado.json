@@ -2,6 +2,7 @@
   "name": "MP - Consultar Status Pagamento (recusado - cenário pagamento_recusado)",
   "scenarioName": "pagamento-recusado",
   "requiredScenarioState": "pagamento_recusado",
+  "priority": 1,
   "request": {
     "method": "GET",
     "urlPathPattern": "/v1/payments/search.*"

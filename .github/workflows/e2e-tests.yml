@@ -56,7 +56,12 @@ jobs:
             -f docker-compose/docker-compose.e2e.yaml \
             ps
 
+      # `continue-on-error: true` permite que os steps seguintes (geração e upload do
+      # Allure) sempre rodem, garantindo que o report fique disponível mesmo quando
+      # houver testes falhando. O job só é marcado como failure ao final via o step
+      # "Fail job if Robot tests failed" — ou seja, o workflow é um gate confiável de PR.
       - name: Run Robot Framework with Allure listener
+        id: robot
         run: |
           robot --listener allure_robotframework:allure-results \
                 --outputdir results \
@@ -137,6 +142,12 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-history
+
+      - name: Fail job if Robot tests failed
+        if: steps.robot.outcome == 'failure'
+        run: |
+          echo "::error::Robot Framework reportou falhas. Veja o report Allure (artifact 'allure-report')."
+          exit 1
 
       - name: Show service logs on failure
         if: failure()

@@ -79,19 +79,23 @@ Simular Aprovacao Webhook
     [Arguments]    ${os_id}
     ${ts}=      Timestamp Unix Atual
     ${token}=   Calcular HMAC SHA256    ${os_id}    aprovar    ${ts}
+    ${params}=    Create Dictionary    token=${token}    ts=${ts}
     ${response}=    GET
     ...    ${CADASTROS_URL}/webhooks/orcamentos/${os_id}/aprovar
-    ...    params=token=${token}&ts=${ts}
+    ...    params=${params}
     ...    expected_status=200
     Log    Webhook aprovação executado para OS ${os_id}
 
 Simular Rejeicao Webhook
     [Documentation]    Simula o cliente clicando no link de rejeição do orçamento.
+    ...    Usa Create Dictionary para que requests cuide do URL-encoding do motivo
+    ...    (espaços e acentos).
     [Arguments]    ${os_id}    ${motivo}=Preço elevado
     ${ts}=      Timestamp Unix Atual
     ${token}=   Calcular HMAC SHA256    ${os_id}    rejeitar    ${ts}
+    ${params}=    Create Dictionary    token=${token}    ts=${ts}    motivo=${motivo}
     ${response}=    GET
     ...    ${CADASTROS_URL}/webhooks/orcamentos/${os_id}/rejeitar
-    ...    params=token=${token}&ts=${ts}&motivo=${motivo}
+    ...    params=${params}
     ...    expected_status=200
     Log    Webhook rejeição executado para OS ${os_id}

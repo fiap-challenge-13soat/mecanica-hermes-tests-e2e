@@ -10,6 +10,10 @@ Suíte de testes end-to-end das APIs Mecânica Hermes usando **Robot Framework**
 | `02__pagamento_cancelado_recriado` | Primeiro pagamento recusado → OS reverte → segundo pagamento aprovado → Entregue | `pagamento-recusado` `resiliencia` |
 | `03__orcamento_rejeitado` | AguardandoAprovacao → cliente rejeita webhook → Rejeitada (terminal) | `orcamento-rejeitado` |
 | `04__cancelamento_em_execucao` | EmExecucao → operador cancela → Cancelada (terminal) | `cancelamento` |
+| `05__pagamento_expirado` | Pagamento expira por timeout MP → OS reverte para `ManutencaoFinalizada` | `pagamento-expirado` `resiliencia` |
+| `06__webhook_idempotencia` | Webhook de aprovação duplicado → OS avança apenas uma vez | `webhook-idempotencia` |
+| `07__saga_timeout_protection` | Validação do timeout sentinel da SAGA em operações encadeadas | `saga-timeout` |
+| `08__cancelamento_em_aguardando_pagamento` | Operador cancela em AguardandoPagamento → OS Cancelada + pagamento Recusado via consumer cross-service | `cancelamento` `pagamento-pendente` `cross-service` |
 
 ## Pré-requisitos
 
@@ -103,7 +107,7 @@ allure open allure-report
 
 Cada push em `main` dispara o workflow `.github/workflows/e2e-tests.yml`, que:
 
-- Executa as 4 suítes contra todo o ambiente Docker (3 APIs + WireMock + infra)
+- Executa as 8 suítes contra todo o ambiente Docker (3 APIs + WireMock + infra)
 - Publica o relatório Allure em **GitHub Pages** com histórico das 20 últimas execuções
 - Faz upload de `allure-report` e `robot-results` como **artefatos** do GitHub Actions (retenção 30 dias)
 
@@ -128,7 +132,7 @@ tests/
 │   │   └── env.yaml               # URLs, timeouts, secrets
 │   └── fixtures/
 │       └── wiremock/mappings/     # mapeamentos WireMock (Mercado Pago mock)
-└── suites/                        # 4 suítes .robot
+└── suites/                        # 8 suítes .robot (BDD)
 ```
 
 ## Serviços no Docker Compose E2E

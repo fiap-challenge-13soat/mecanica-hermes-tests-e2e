@@ -6,6 +6,7 @@ output.xml
 log.html
 report.html
 .env.local
+docker-compose/.env
 __pycache__/
 *.pyc
 *.pyo

@@ -1,153 +1,139 @@
-# Mecânica Hermes — Docker Compose
+# Docker Compose — Stack E2E Mecânica Hermes
 
-Este diretório contém a configuração Docker Compose para execução local da aplicação Mecânica Hermes com todas as suas dependências.
+Configuração canônica do stack completo do ecossistema Mecânica Hermes para
+execução local e CI: 3 APIs (.NET) + WireMock + infraestrutura (Postgres, MongoDB
+com replica set, RabbitMQ com plugin de delayed exchange).
 
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.1-336791?logo=postgresql&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.1-FF6600?logo=rabbitmq&logoColor=white)
 
 ## Pré-requisitos
 
-- Docker 20.10+
-- Docker Compose 2.0+
+- Docker 24+ com Docker Compose v2
+- Acesso ao Docker Hub (puxa `mechermes/*:latest` automaticamente)
 
 ## Configuração
 
-### 1. Copiar arquivo de variáveis
+### 1. Copiar variáveis de ambiente
 
 ```bash
 cp .env.example .env
 ```
 
-### 2. Editar configurações
+O `.env` é **gitignored** — não comita credenciais. O `.env.example` lista as
+chaves esperadas com valores dummy.
 
-Edite o arquivo `.env` com suas configurações (opcional, os valores padrão já funcionam):
+### 2. (Opcional) Editar tags de imagens
+
+Para fixar uma versão específica das APIs em vez de `latest`, edite no `.env`:
 
 ```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=teste123A!
-POSTGRES_DB=OficinaDB
-ASPNETCORE_ENVIRONMENT=Production
-JWT_KEY=sua-chave-jwt-aqui
-JWT_ISSUER=MecanicaHermes
+OS_IMAGE_TAG=sha-abcd1234
+CADASTROS_IMAGE_TAG=sha-abcd1234
+PAGAMENTOS_IMAGE_TAG=sha-abcd1234
 ```
 
-## Executar a aplicação
+## Subir o stack
 
-### Opção 1: Docker Compose (recomendado)
+A partir da raiz do repositório:
 
 ```bash
-# Iniciar os serviços
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Ver logs apenas da aplicação
-docker-compose logs -f app
-
-# Parar os serviços
-docker-compose down
-
-# Parar e remover volumes (limpa o banco de dados)
-docker-compose down -v
+docker compose \
+  -f docker-compose/docker-compose.yaml \
+  -f docker-compose/docker-compose.e2e.yaml \
+  up -d --wait --build --pull always
 ```
 
-### Opção 2: Apenas PostgreSQL
+Flags importantes:
 
-Se você quiser rodar apenas o PostgreSQL e executar a aplicação localmente:
+- `--wait`: aguarda **todos** os healthchecks passarem antes de retornar (~30-60s).
+- `--build`: força build da imagem custom do RabbitMQ (com plugin
+  `rabbitmq_delayed_message_exchange`).
+- `--pull always`: garante `:latest` atualizado das 3 APIs no Docker Hub.
+
+## Serviços e portas
+
+| Serviço | Porta host | Porta container | Descrição |
+|---|---|---|---|
+| `api-os` | 8081 | 8080 | API de Ordem de Serviço |
+| `api-cadastros` | 8082 | 8080 | API de Cadastros |
+| `api-pagamentos` | 8083 | 8080 | API de Pagamentos (Mercado Pago via WireMock) |
+| `wiremock` | 8090 | 8080 | Mock do Mercado Pago (mappings em `tests/resources/fixtures/wiremock/mappings/`) |
+| `postgres` | 5432 | 5432 | OS + Cadastros (DBs criados via `services/postgres/initdb/`) |
+| `mongo` | 27017 | 27017 | Pagamentos (SAGA + Outbox) — replica set `rs0` |
+| `rabbitmq` | 5672 / 15672 | 5672 / 15672 | Bus + Management UI (`guest`/`guest`) |
+
+## Verificar saúde
 
 ```bash
-docker-compose up -d postgres
-```
-
-## Verificar se está funcionando
-
-- **API**: <http://localhost:8080>
-- **Health Check**: <http://localhost:8080/health>
-- **OpenAPI** (apenas em Development): <http://localhost:8080/scalar/v1>
-
-## Conexão ao banco de dados
-
-- **Host**: localhost
-- **Porta**: 5432
-- **Database**: OficinaDB
-- **User**: postgres (ou conforme configurado no .env)
-- **Password**: teste123A! (ou conforme configurado no .env)
-
-## Estrutura
-
-```text
-docker-compose/
-├── docker-compose.yaml   # Configuração do Docker Compose
-└── .env.example          # Exemplo de variáveis de ambiente
-
-../
-├── Dockerfile            # Dockerfile multi-stage para build da aplicação
-└── .dockerignore        # Arquivos ignorados no build do Docker
+curl -fs http://localhost:8081/health   # OS
+curl -fs http://localhost:8082/health   # Cadastros
+curl -fs http://localhost:8083/health   # Pagamentos
+curl -fs http://localhost:8090/__admin/health   # WireMock
 ```
 
 ## Comandos úteis
 
 ```bash
-# Rebuild da aplicação
-docker-compose build app
+# Ver status
+docker compose -f docker-compose/docker-compose.yaml -f docker-compose/docker-compose.e2e.yaml ps
 
-# Rebuild sem cache
-docker-compose build --no-cache app
+# Logs (todos os serviços)
+docker compose -f docker-compose/docker-compose.yaml -f docker-compose/docker-compose.e2e.yaml logs -f
 
-# Ver status dos containers
-docker-compose ps
+# Logs de um serviço específico
+docker compose -f docker-compose/docker-compose.yaml -f docker-compose/docker-compose.e2e.yaml logs -f api-pagamentos
 
-# Executar comando no container da aplicação
-docker-compose exec app bash
+# Derrubar (com volumes — limpa databases)
+docker compose -f docker-compose/docker-compose.yaml -f docker-compose/docker-compose.e2e.yaml down -v
+```
 
-# Ver logs de um serviço específico
-docker-compose logs -f postgres
-docker-compose logs -f app
+## Estrutura
 
-# Reiniciar apenas a aplicação
-docker-compose restart app
-
-# Remover tudo (containers, volumes, networks)
-docker-compose down -v --remove-orphans
+```text
+docker-compose/
+├── docker-compose.yaml         # Infra base (postgres, mongo, rabbitmq via extends)
+├── docker-compose.e2e.yaml     # Overrides E2E: WireMock + 3 APIs (mechermes/*)
+├── .env.example                # Template (versionado, sem segredos)
+├── .env                        # Local, gitignored (cópia editável)
+└── services/
+    ├── postgres/
+    │   ├── postgres.yaml       # Service definition (extends)
+    │   ├── initdb/             # Scripts de criação de DBs
+    │   └── postgres_data/      # Volume persistente (gitignored)
+    ├── mongodb/
+    │   ├── mongo.yaml          # Service definition (replica set)
+    │   └── mongo_data/         # Volume (gitignored)
+    └── rabbitmq/
+        ├── rabbitmq.yaml       # Service definition (refere o Dockerfile)
+        ├── Dockerfile          # rabbitmq:4.1-management + plugin delayed-message-exchange
+        └── rabbitmq_data/      # Volume (gitignored)
 ```
 
 ## Troubleshooting
 
-### A aplicação não inicia
+### Stack não sobe healthy
 
-1. Verifique os logs: `docker-compose logs -f app`
-2. Verifique se o PostgreSQL está saudável: `docker-compose ps`
-3. Verifique a conexão: `docker-compose exec app curl -f http://localhost:8080/health`
+1. Verifique logs do serviço que travou: `docker compose ... logs <serviço>`
+2. Postgres precisa de migrations das APIs — se `api-os` falha primeiro start, é porque
+   `RUN_MIGRATIONS_ON_STARTUP` não rodou. Tente `down -v` e `up` novo.
+3. RabbitMQ custom build falha se a versão do plugin não pareia com o broker — não
+   altere `rabbitmq:4.1-management` sem alinhar `PLUGIN_VERSION` no `Dockerfile`.
 
-### Banco de dados não conecta
+### Webhook do Mercado Pago não dispara
 
-1. Verifique se o PostgreSQL está rodando: `docker-compose ps postgres`
-2. Verifique os logs do PostgreSQL: `docker-compose logs -f postgres`
-3. Teste a conexão: `docker-compose exec postgres pg_isready -U postgres`
+A configuração da API Pagamentos aponta para `http://wiremock:8080` (DNS interno
+da rede docker, **não** `localhost:8090`).
 
-### Porta já está em uso
+### Port já em uso (`bind: address already in use`)
 
-Se a porta 8080 ou 5432 já estiver em uso, edite o docker-compose.yaml:
+Outro container/serviço local está ocupando a porta. Pare ou edite a coluna
+"Porta host" no compose.
 
-```yaml
-ports:
-  - "8081:8080"  # Mudar porta externa para 8081
-```
+## Referências
 
-## Segurança
-
-**IMPORTANTE**:
-
-- Não use as senhas padrão em produção!
-- Altere a chave JWT para um valor seguro e único
-- Use secrets do Docker ou variáveis de ambiente seguras em produção
-- Não commite o arquivo `.env` no repositório
-
-## Notas
-
-- As migrations são aplicadas automaticamente na inicialização da aplicação
-- O banco de dados persiste em um volume Docker (`postgres_data`)
-- A aplicação aguarda o PostgreSQL estar saudável antes de iniciar
-- Logs são exibidos no formato JSON em produção
-- Rodar simultaneamente o app no Docker Compose e na sua IDE irá gerar conflitos nas migrations do banco de dados.
+- Suíte E2E (Robot Framework): pasta raiz do repo (`tests/suites/`).
+- Workflow CI: `.github/workflows/e2e-tests.yml`.
+- Documentação principal e cobertura: [`README.md`](../README.md) na raiz.

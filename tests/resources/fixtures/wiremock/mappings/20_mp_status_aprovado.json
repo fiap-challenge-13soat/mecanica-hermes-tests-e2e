@@ -1,5 +1,6 @@
 {
   "name": "MP - Consultar Status Pagamento (aprovado - padrão)",
+  "priority": 5,
   "request": {
     "method": "GET",
     "urlPathPattern": "/v1/payments/search.*"
