@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:18.1
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teste123A!}
+    ports:
+      - 5432:5432
+    volumes:
+      # Postgres 18+ recomenda mount em `/var/lib/postgresql` (pai de PGDATA), não em
+      # `/var/lib/postgresql/data` — a partir desta versão a imagem usa subdirs
+      # versionados (`/var/lib/postgresql/<major>/data`) para suportar
+      # `pg_upgrade --link` sem cruzar mount points. Ver:
+      # https://github.com/docker-library/postgres/issues/37 e PR #1259.
+      - ./postgres_data:/var/lib/postgresql
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      # Usa o DB sistema "postgres" (sempre existe) em vez de ${POSTGRES_DB} —
+      # o initdb cria MecHermesOrdemDeServicoDB e MecHermesCadastrosDB, mas
+      # nenhum DB chamado "postgres" é necessariamente o usado pela app, então
+      # apontar pra ele evita falsos negativos no healthcheck quando alguém
+      # mudar POSTGRES_DB no .env.
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d postgres",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

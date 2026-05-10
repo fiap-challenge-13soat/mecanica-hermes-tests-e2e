@@ -1,0 +1,16 @@
+results/
+allure-results/
+allure-report/
+allure-history/
+output.xml
+log.html
+report.html
+.env.local
+docker-compose/.env
+__pycache__/
+*.pyc
+*.pyo
+docker-compose/services/mongodb/mongo_data/
+docker-compose/services/postgres/postgres_data/
+docker-compose/services/rabbitmq/rabbitmq_data/
+.claude/

@@ -1,0 +1,13 @@
+services:
+  postgres:
+    extends:
+      file: ./services/postgres/postgres.yaml
+      service: postgres
+  rabbitmq:
+    extends:
+      file: ./services/rabbitmq/rabbitmq.yaml
+      service: rabbitmq
+  mongo:
+    extends:
+      file: ./services/mongodb/mongo.yaml
+      service: mongo

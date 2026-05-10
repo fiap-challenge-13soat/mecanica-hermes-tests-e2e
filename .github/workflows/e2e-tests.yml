@@ -1,0 +1,166 @@
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  e2e:
+    name: Run E2E + Publish Allure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start environment (Docker Compose)
+        env:
+          MEDIATR_LICENSE_KEY: ${{ secrets.MEDIATR_LICENSE_KEY }}
+          # Tags das imagens — pin sha-<short> em mãos via secrets para builds determinísticos.
+          # Sem secrets configurados, cai para "latest" (ok para validar workflow, não para gates).
+          OS_IMAGE_TAG: ${{ vars.OS_IMAGE_TAG || 'latest' }}
+          CADASTROS_IMAGE_TAG: ${{ vars.CADASTROS_IMAGE_TAG || 'latest' }}
+          PAGAMENTOS_IMAGE_TAG: ${{ vars.PAGAMENTOS_IMAGE_TAG || 'latest' }}
+        run: |
+          docker compose \
+            -f docker-compose/docker-compose.yaml \
+            -f docker-compose/docker-compose.e2e.yaml \
+            up -d --wait --wait-timeout 300
+
+      - name: Show containers status
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose/docker-compose.yaml \
+            -f docker-compose/docker-compose.e2e.yaml \
+            ps
+
+      # `continue-on-error: true` permite que os steps seguintes (geração e upload do
+      # Allure) sempre rodem, garantindo que o report fique disponível mesmo quando
+      # houver testes falhando. O job só é marcado como failure ao final via o step
+      # "Fail job if Robot tests failed" — ou seja, o workflow é um gate confiável de PR.
+      - name: Run Robot Framework with Allure listener
+        id: robot
+        run: |
+          robot --listener allure_robotframework:allure-results \
+                --outputdir results \
+                tests/suites/
+        continue-on-error: true
+
+      - name: Get Allure history (from gh-pages)
+        if: always()
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      # Geração do Allure feita manualmente via CLI: a action `simple-elf/allure-report-action`
+      # ficou quebrada porque a imagem base `openjdk:8-jre-alpine` foi removida do Docker Hub.
+      # Mantemos o trend de runs anteriores copiando `gh-pages/history` para `allure-results/history`
+      # antes do `allure generate` (Allure detecta a pasta e acumula tendências).
+      - name: Setup Java (Allure CLI)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Allure CLI
+        if: always()
+        env:
+          ALLURE_VERSION: "2.30.0"
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/allure.tgz \
+            "https://github.com/allure-framework/allure2/releases/download/${ALLURE_VERSION}/allure-${ALLURE_VERSION}.tgz"
+          sudo tar -xzf /tmp/allure.tgz -C /opt/
+          sudo ln -sf "/opt/allure-${ALLURE_VERSION}/bin/allure" /usr/local/bin/allure
+          allure --version
+
+      - name: Restore Allure history (preserva trend cross-runs)
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p allure-results
+          if [ -d gh-pages/history ]; then
+            mkdir -p allure-results/history
+            cp -r gh-pages/history/. allure-results/history/
+            echo "History restaurado de gh-pages/history."
+          else
+            echo "Sem history prévio em gh-pages — trend vai começar do zero."
+          fi
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          set -euo pipefail
+          allure generate allure-results --clean -o allure-history
+          ls -la allure-history/ | head -20
+
+      - name: Upload Allure report (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-history
+          retention-days: 30
+
+      - name: Upload Robot Framework reports (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-results
+          path: results
+          retention-days: 30
+
+      - name: Publish to GitHub Pages (main branch only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+
+      - name: Fail job if Robot tests failed
+        if: steps.robot.outcome == 'failure'
+        run: |
+          echo "::error::Robot Framework reportou falhas. Veja o report Allure (artifact 'allure-report')."
+          exit 1
+
+      - name: Show service logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f docker-compose/docker-compose.yaml \
+            -f docker-compose/docker-compose.e2e.yaml \
+            logs --tail=300
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose/docker-compose.yaml \
+            -f docker-compose/docker-compose.e2e.yaml \
+            down -v

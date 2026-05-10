@@ -1,0 +1,26 @@
+services:
+  mongo:
+    image: mongo:8.2.7
+    container_name: mongo
+    # Replica set single-node: necessario porque a API de Pagamentos usa MongoDB transactions
+    # via MongoUnitOfWork, e transactions exigem replica set (ou sharded cluster). Sem isto,
+    # o consumer de GerarLinkPagamento falha com "Standalone servers do not support transactions".
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo_data:/data/db
+    restart: unless-stopped
+    # Healthcheck inicia o replica set na primeira execucao (idempotente: rs.initiate falha
+    # silenciosamente se ja inicializado) e so reporta healthy quando o membro eh PRIMARY.
+    healthcheck:
+      test:
+        - "CMD"
+        - "mongosh"
+        - "--quiet"
+        - "--eval"
+        - "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}); throw e; }"
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s

@@ -1,0 +1,26 @@
+{
+  "name": "MP - Consultar Status Pagamento (recusado - cenário pagamento_recusado)",
+  "scenarioName": "pagamento-recusado",
+  "requiredScenarioState": "pagamento_recusado",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/v1/payments/search.*"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "paging": { "total": 1, "limit": 30, "offset": 0 },
+      "results": [
+        {
+          "id": 99002,
+          "status": "rejected",
+          "status_detail": "cc_rejected_insufficient_amount",
+          "external_reference": "{{request.query.external_reference}}"
+        }
+      ]
+    },
+    "transformers": ["response-template"]
+  }
+}

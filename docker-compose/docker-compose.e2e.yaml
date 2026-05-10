@@ -1,0 +1,159 @@
+name: mecanica-hermes-e2e
+
+networks:
+  e2e-net:
+    driver: bridge
+
+services:
+  postgres:
+    extends:
+      file: ./services/postgres/postgres.yaml
+      service: postgres
+    networks:
+      - e2e-net
+
+  rabbitmq:
+    extends:
+      file: ./services/rabbitmq/rabbitmq.yaml
+      service: rabbitmq
+    networks:
+      - e2e-net
+
+  mongo:
+    extends:
+      file: ./services/mongodb/mongo.yaml
+      service: mongo
+    networks:
+      - e2e-net
+
+  wiremock:
+    image: wiremock/wiremock:3.10.0
+    container_name: wiremock
+    command: --verbose --global-response-templating
+    ports:
+      - "8090:8080"
+    volumes:
+      - ../tests/resources/fixtures/wiremock/mappings:/home/wiremock/mappings
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/__admin/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - e2e-net
+
+  api-os:
+    image: mechermes/mecanica-hermes-api-ordem-servico:${OS_IMAGE_TAG:-latest}
+    container_name: api-os
+    ports:
+      - "8081:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Testing
+      ASPNETCORE_HTTP_PORTS: "8080"
+      MediatR__LicenseKey: ${MEDIATR_LICENSE_KEY:-}
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=MecHermesOrdemDeServicoDB;
+        Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-teste123A!};Pooling=true;
+      MASSTRANSIT__TRANSPORT_SERVICE: RabbitMq
+      MASSTRANSIT__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
+      MASSTRANSIT__QUEUE_NAME_PREFIX: mecanica-hermes-e2e
+      MASSTRANSIT__PREFETCH_COUNT: "1"
+      MONGODB__CONNECTION_STRING: mongodb://mongo:27017
+      MONGODB__SAGA_DATABASE: mechermes_saga_e2e
+      OUTBOX__POLL_INTERVAL: "00:00:02"
+      # SAGA timeout sentinel: 30s em E2E (default em prod = 5min). Permite que a suite 07
+      # valide o pathway de timeout sem aguardar 5min reais. Operações da SAGA na suíte
+      # completam consistentemente em < 5s, então 30s é folgado para o caminho feliz.
+      SAGA__OPERATION_TIMEOUT: "00:00:30"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks:
+      - e2e-net
+
+  api-cadastros:
+    image: mechermes/mecanica-hermes-cadastros:${CADASTROS_IMAGE_TAG:-latest}
+    container_name: api-cadastros
+    ports:
+      - "8082:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Testing
+      ASPNETCORE_HTTP_PORTS: "8080"
+      MediatR__LicenseKey: ${MEDIATR_LICENSE_KEY:-}
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=MecHermesCadastrosDB;
+        Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-teste123A!};Pooling=true;
+      MASSTRANSIT__TRANSPORT_SERVICE: RabbitMq
+      MASSTRANSIT__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
+      MASSTRANSIT__QUEUE_NAME_PREFIX: mecanica-hermes-cadastros-e2e
+      MONGODB__CONNECTION_STRING: mongodb://mongo:27017
+      ORDEM_SERVICO_API__BASE_URL: http://api-os:8080
+      PAGAMENTO_API__BASE_URL: http://api-pagamentos:8080
+      WEBHOOK__SIGNING_SECRET: ${WEBHOOK_SIGNING_SECRET:-e2e-signing-secret-32chars-minimum!}
+      APP__BASE_URL: http://api-cadastros:8080
+      EmailSender__Enabled: "false"
+      RUN_MIGRATIONS_ON_STARTUP: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks:
+      - e2e-net
+
+  api-pagamentos:
+    image: mechermes/mecanica-hermes-api-pagamento:${PAGAMENTOS_IMAGE_TAG:-latest}
+    container_name: api-pagamentos
+    ports:
+      - "8083:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Testing
+      ASPNETCORE_HTTP_PORTS: "8080"
+      MediatR__LicenseKey: ${MEDIATR_LICENSE_KEY:-}
+      MONGODB__CONNECTION_STRING: mongodb://mongo:27017
+      MONGODB__DATABASE: mechermes_pagamento_e2e
+      MONGODB__SAGA_DATABASE: mechermes_pagamento_saga_e2e
+      MASSTRANSIT__TRANSPORT_SERVICE: RabbitMq
+      MASSTRANSIT__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
+      MASSTRANSIT__QUEUE_NAME_PREFIX: mecanica-hermes-pagamento-e2e
+      MERCADO_PAGO__ACCESS_TOKEN: TEST-e2e-fake-token
+      MERCADO_PAGO__WEBHOOK_SECRET: e2e-mp-webhook-secret
+      MERCADO_PAGO__NOTIFICATION_URL: http://api-pagamentos:8080/api/webhooks/mercadopago
+      MERCADO_PAGO__API_BASE_URL: http://wiremock:8080
+      CADASTROS_API__BASE_URL: http://api-cadastros:8080
+      PAGAMENTO__POLLING_INTERVAL: "00:00:05"
+      PAGAMENTO__POLLING_MAX_ATTEMPTS: "6"
+      PAGAMENTO__OPERATION_TIMEOUT: "00:01:00"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+      api-cadastros:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks:
+      - e2e-net
