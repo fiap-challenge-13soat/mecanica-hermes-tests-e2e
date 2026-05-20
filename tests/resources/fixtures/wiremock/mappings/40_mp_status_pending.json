@@ -2,6 +2,7 @@
   "name": "MP - Consultar Status Pagamento (pending - cenário pagamento_pending)",
   "scenarioName": "pagamento-pending",
   "requiredScenarioState": "pagamento_pending",
+  "priority": 1,
   "request": {
     "method": "GET",
     "urlPathPattern": "/v1/payments/search.*"

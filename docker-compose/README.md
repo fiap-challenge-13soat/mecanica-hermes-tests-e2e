@@ -63,7 +63,7 @@ Flags importantes:
 | `wiremock` | 8090 | 8080 | Mock do Mercado Pago (mappings em `tests/resources/fixtures/wiremock/mappings/`) |
 | `postgres` | 5432 | 5432 | OS + Cadastros (DBs criados via `services/postgres/initdb/`) |
 | `mongo` | 27017 | 27017 | Pagamentos (SAGA + Outbox) — replica set `rs0` |
-| `rabbitmq` | 5672 / 15672 | 5672 / 15672 | Bus + Management UI (`guest`/`guest`) |
+| `rabbitmq` | 5672 / 15672 | 5672 / 15672 | Bus + Management UI (`guest`/`guest`). E2E força `MASSTRANSIT__TRANSPORT_SERVICE=RabbitMq` no compose porque o default das APIs passou a ser `AmazonMq` (broker gerenciado AWS) — local não tem o broker. |
 
 ## Verificar saúde
 
