@@ -1,30 +1,30 @@
 "DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
-"Após o orçamento ser enviado, o cliente clica em ""Rejeitar"".
-Valida que a OS transiciona para o estado terminal Rejeitada
-e não pode mais avançar.","12158","Cliente Rejeita Orcamento - OS Vai Para Rejeitada","","Sun May 10 17:21:55 UTC 2026","passed","Sun May 10 17:22:07 UTC 2026","Orcamento Rejeitado","Suites","",""
-"O polling do Mercado Pago recebe `pending` ad infinitum.
-Após esgotar as tentativas, o Pagamento expira e a OS reverte
-para ManutencaoFinalizada para que o operador possa retentar.","84642","Pagamento Expira Por Timeout - OS Reverte Para ManutencaoFinalizada","","Sun May 10 17:22:22 UTC 2026","passed","Sun May 10 17:23:47 UTC 2026","Pagamento Expirado","Suites","",""
-"O primeiro pagamento é recusado pelo MP. A OS reverte para ManutencaoFinalizada.
-Configura WireMock para aprovar o segundo pagamento e verifica entrega final.","29582","Pagamento Recusado - Segundo Pagamento Aprovado - Entrega","","Sun May 10 17:21:25 UTC 2026","passed","Sun May 10 17:21:55 UTC 2026","Pagamento Cancelado Recriado","Suites","",""
 "O cliente clica em ""Aprovar"" duas vezes (rede flaky / duplo-clique).
 Validações: ambos os HTTP retornam 200, OS transiciona para EmExecucao
 exatamente uma vez, e a OS continua avançando normalmente após o duplo-clique
-(i.e., o handler idempotente não corrompe o estado).","12161","Webhook Aprovacao Duplicado - OS Avanca Apenas Uma Vez","","Sun May 10 17:23:47 UTC 2026","passed","Sun May 10 17:23:59 UTC 2026","Webhook Idempotencia","Suites","",""
-"Encadeia 4 Avancares consecutivos sem pausa.
-Cada Avancar precisa fazer o ciclo Initial→Processing→Initial via
-`OperationCompleted` — se em algum ponto a SAGA caísse em Initial via
-`OperationTimeout`, o próximo Avancar seria descartado (Ignore em
-Processing) e a OS ficaria parada. O fluxo passar end-to-end prova que
-o lifecycle da SAGA está sólido sob timeout curto (30s).","12205","Lifecycle Da SAGA Em Operacoes Encadeadas - Sem Timeout Espurio","","Sun May 10 17:23:59 UTC 2026","passed","Sun May 10 17:24:12 UTC 2026","Saga Timeout Protection","Suites","",""
+(i.e., o handler idempotente não corrompe o estado).","15142","Webhook Aprovacao Duplicado - OS Avanca Apenas Uma Vez","","Wed May 20 03:46:05 UTC 2026","passed","Wed May 20 03:46:20 UTC 2026","Webhook Idempotencia","Suites","",""
+"O polling do Mercado Pago recebe `pending` ad infinitum.
+Após esgotar as tentativas, o Pagamento expira e a OS reverte
+para ManutencaoFinalizada para que o operador possa retentar.","92415","Pagamento Expira Por Timeout - OS Reverte Para ManutencaoFinalizada","","Wed May 20 03:44:32 UTC 2026","passed","Wed May 20 03:46:05 UTC 2026","Pagamento Expirado","Suites","",""
+"Valida que uma OS percorre todos os estados do ciclo de vida feliz:
+Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao
+→ ManutencaoFinalizada → AguardandoPagamento → PagamentoConfirmado → Entregue","30202","Ciclo Completo - Recebida Ate Entregue","","Wed May 20 03:43:02 UTC 2026","passed","Wed May 20 03:43:32 UTC 2026","Caminho Feliz","Suites","",""
+"Após o orçamento ser enviado, o cliente clica em ""Rejeitar"".
+Valida que a OS transiciona para o estado terminal Rejeitada
+e não pode mais avançar.","12140","Cliente Rejeita Orcamento - OS Vai Para Rejeitada","","Wed May 20 03:44:05 UTC 2026","passed","Wed May 20 03:44:17 UTC 2026","Orcamento Rejeitado","Suites","",""
 "O operador cancela uma OS em AguardandoPagamento (link de MP já gerado,
 pagamento em ciclo de polling). Espera-se que (a) a OS transicione para
 Cancelada (terminal); (b) o `OrdemDeServicoCanceladaConsumer` da Pagamentos
 consuma o evento `ordem-de-servico.cancelada.v1` e recuse o pagamento
 ativo, evitando que o polling MP siga consumindo recursos; (c) o estado
-Cancelada da OS rejeite avanços subsequentes.","23839","Cancelamento Em AguardandoPagamento - OS Vai Para Cancelada E Pagamento É Recusado","","Sun May 10 17:24:12 UTC 2026","passed","Sun May 10 17:24:36 UTC 2026","Cancelamento Em Aguardando Pagamento","Suites","",""
-"Valida que uma OS percorre todos os estados do ciclo de vida feliz:
-Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao
-→ ManutencaoFinalizada → AguardandoPagamento → PagamentoConfirmado → Entregue","28137","Ciclo Completo - Recebida Ate Entregue","","Sun May 10 17:20:57 UTC 2026","passed","Sun May 10 17:21:25 UTC 2026","Caminho Feliz","Suites","",""
+Cancelada da OS rejeite avanços subsequentes.","23774","Cancelamento Em AguardandoPagamento - OS Vai Para Cancelada E Pagamento É Recusado","","Wed May 20 03:46:32 UTC 2026","passed","Wed May 20 03:46:56 UTC 2026","Cancelamento Em Aguardando Pagamento","Suites","",""
+"O primeiro pagamento é recusado pelo MP. A OS reverte para ManutencaoFinalizada.
+Configura WireMock para aprovar o segundo pagamento e verifica entrega final.","32355","Pagamento Recusado - Segundo Pagamento Aprovado - Entrega","","Wed May 20 03:43:32 UTC 2026","passed","Wed May 20 03:44:05 UTC 2026","Pagamento Cancelado Recriado","Suites","",""
+"Encadeia 4 Avancares consecutivos sem pausa.
+Cada Avancar precisa fazer o ciclo Initial→Processing→Initial via
+`OperationCompleted` — se em algum ponto a SAGA caísse em Initial via
+`OperationTimeout`, o próximo Avancar seria descartado (Ignore em
+Processing) e a OS ficaria parada. O fluxo passar end-to-end prova que
+o lifecycle da SAGA está sólido sob timeout curto (30s).","12147","Lifecycle Da SAGA Em Operacoes Encadeadas - Sem Timeout Espurio","","Wed May 20 03:46:20 UTC 2026","passed","Wed May 20 03:46:32 UTC 2026","Saga Timeout Protection","Suites","",""
 "Valida que uma OS em EmExecucao pode ser cancelada pelo operador
-e o estado Cancelada é terminal (sem retorno).","15300","Cancelamento Durante Execucao","","Sun May 10 17:22:07 UTC 2026","passed","Sun May 10 17:22:22 UTC 2026","Cancelamento Em Execucao","Suites","",""
+e o estado Cancelada é terminal (sem retorno).","15160","Cancelamento Durante Execucao","","Wed May 20 03:44:17 UTC 2026","passed","Wed May 20 03:44:32 UTC 2026","Cancelamento Em Execucao","Suites","",""
